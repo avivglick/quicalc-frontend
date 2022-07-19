@@ -1,25 +1,28 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Field } from "../Field/Field";
 import axios from "axios";
 import spinner from "../../Spinner.svg";
+import "./style.css";
+import { Results } from "../Results/Results";
 
 export function UserForm() {
-  const formInitialFields = getFormFields();
-
-  const [form, setForm] = useState(getInitiatedForm());
+  const [form, setForm] = useState(null);
   const [isLoadingResults, setIsLoadingResults] = useState(false);
   const [results, setResults] = useState(null);
 
-  const formFields = Object.keys(form);
-  //console.log({ formFields });
+  const formFields = form && Object.keys(form);
 
-  function getInitiatedForm() {
-    const result = {};
-    formInitialFields.forEach(
-      (currentFieldName) => (result[currentFieldName] = null)
-    );
+  useEffect(() => {
+    loadInitiatedForm();
+  }, []);
 
-    return result;
+  async function loadInitiatedForm() {
+    const works = await (await axios.get("http://localhost:4000/works")).data;
+    console.log({ works });
+    const intialForm = {};
+    works.forEach((currentWorkName) => (intialForm[currentWorkName] = null));
+    console.log({ intialForm });
+    setForm(intialForm);
   }
 
   async function submitForm() {
@@ -29,7 +32,7 @@ export function UserForm() {
         "http://localhost:4000/form-prices",
         form
       );
-      setResults(result);
+      setResults(result.data);
     } catch (error) {
     } finally {
       setIsLoadingResults(false);
@@ -42,24 +45,42 @@ export function UserForm() {
     setForm(formCopy);
   }
 
-  //  console.log({form})
+  if (!form) return null;
 
   return (
     <div className="user-form">
-      <p>User Form</p>
-      {formFields.map((currentFieldName) => (
-        <Field
-          name={currentFieldName}
-          value={form[currentFieldName]}
-          changeFieldValue={changeFieldValue}
-        />
-      ))}
+      <p>Choose budget for each of the following options</p>
+      <div className="form-box">
+        <div></div>
+        <div className="option-title">
+          <p>not interested</p>
+        </div>
+        <div className="option-title">
+          <p>basic</p>
+        </div>
+        <div className="option-title">
+          <p>average</p>
+        </div>
+        <div className="option-title">
+          <p>expensive</p>
+        </div>
+
+        {formFields.map((currentFieldName) => (
+          <Field
+            name={currentFieldName}
+            value={form[currentFieldName]}
+            changeFieldValue={changeFieldValue}
+          />
+        ))}
+      </div>
       {isLoadingResults ? (
         <img src={spinner} />
       ) : (
-        <button onClick={submitForm}>Submit</button>
+        <button className="button" onClick={submitForm}>
+          Submit
+        </button>
       )}
-      <code>{JSON.stringify(results)}</code>
+      {results && <Results results={results} />}
     </div>
   );
 }
@@ -67,9 +88,3 @@ export function UserForm() {
 function getFormFields() {
   return ["breaking indoor wall", "new toilet point"];
 }
-
-const FORM_EXAPMLE = {
-  "Breaking indoor wall": "avarage",
-  "Adding indoor wall": null,
-  "Breaking bathroom": null,
-};
